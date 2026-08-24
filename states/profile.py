@@ -59,3 +59,11 @@ class ProfileStatesRefillancket(StatesGroup):
     waiting_for_all_good = State()
     waiting_for_new_bio = State()
     waiting_for_grade = State()
+
+class LikeStates(StatesGroup):
+    viewing = State()
+    waiting_live_like_message = State()
+    waiting_no_candidates_choice = State()
+
+class ProfileStatesWaitingMatch(StatesGroup):
+    waiting_for_choice = State()

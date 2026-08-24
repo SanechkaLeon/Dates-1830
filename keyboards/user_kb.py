@@ -197,3 +197,31 @@ def buttons_no_edit_bio():
         ],
         resize_keyboard=True
     )
+
+def buttons_reaction():
+    return ReplyKeyboardMarkup(
+        keyboard= [
+            [KeyboardButton(text="❤️"),
+             KeyboardButton(text="💌📹🎤"),
+             KeyboardButton(text="👎"),
+             KeyboardButton(text="💤")]
+        ],
+        resize_keyboard=True
+    )
+
+def buttons_no_candidates():
+    return ReplyKeyboardMarkup(
+        keyboard= [
+            [KeyboardButton(text="Заново"),
+            KeyboardButton(text="Попозже")],
+        ],
+        resize_keyboard=True
+    )
+
+def buttons_waiting_match():
+    return ReplyKeyboardMarkup(
+        keyboard= [
+            [KeyboardButton(text="1"), KeyboardButton(text="2"), KeyboardButton(text="3")],
+        ],
+        resize_keyboard=True
+    )
