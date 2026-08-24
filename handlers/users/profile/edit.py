@@ -15,7 +15,7 @@ from keyboards.user_kb import all_good,  buttons_taki_no_edit_after_support, but
 from keyboards.user_kb import choice_grade, choice_faculty, choice_department, buttons_show_profile, buttons_keep_or_change, value_button
 from states.profile import ProfileStates, ProfileStatesEdit, ProfileStatesRefillancket
 from handlers.users.profile.media_collector import get_or_create_album, schedule_album_finalize
-
+from handlers.users.likes import start_browsing
 from data.text import Show_profile
 
 from database.db import get_connection
@@ -115,8 +115,9 @@ async def edit_after_bmail(message: Message, state: FSMContext):
 async def edit(message: Message, state: FSMContext):
     choice = message.text
 
-    if choice == "1":
+    if choice == "1🚀":
         await state.set_state(ProfileStatesLike.go_date)
+        await start_browsing(message, state)
 
     if choice == "2":
         await start_full_refill(message, state)

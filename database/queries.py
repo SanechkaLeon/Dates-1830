@@ -249,7 +249,7 @@ async def get_next_candidate(conn, viewer_id: int):
                 OR ($2 = 'Парней' AND gender = 'Я парень')
             )
             AND NOT EXISTS (
-                SELECT 1 FROM messages 
+                SELECT 1 FROM likes 
                 WHERE from_user_id = $1 AND to_user_id = users.id
             )
         ORDER BY RANDOM() LIMIT 1
@@ -275,7 +275,7 @@ async def save_reaction(conn,
                         message_text: str = 'none', message_file_id: str = None):
     await conn.execute(
         """
-        INSERT INTO messages(from_user_id, to_user_id, 
+        INSERT INTO likes(from_user_id, to_user_id, 
                              type_attraction, message_type, 
                              message_text, message_file_id, 
                              created_at) 
@@ -288,7 +288,7 @@ async def save_reaction(conn,
 async def check_mutual_like(conn, user_a: int, user_b: int ) -> bool:
     row = await conn.fetchrow(
         """
-        SELECT 1 FROM messages 
+        SELECT 1 FROM likes 
         WHERE from_user_id = $1 AND to_user_id = $2
             AND type_attraction IN ('like', 'live_like')
         LIMIT 1
