@@ -309,3 +309,23 @@ async def create_match(conn, user_a: int, user_b: int):
             "INSERT INTO matches(user1_id, user2_id, created_at) VALUES ($1, $2, NOW())",
             u1, u2
         )
+
+
+async def get_pending_liker(conn, viewer_id: int):
+    return await conn.fetchrow(
+        """
+        SELECT u.id, u.tg_id, u.name, u.age, u.gender, u.who_show,
+               u.grade, u.faculty, u.department, u.bio,
+               l.type_attraction, l.message_type, l.message_text, l.message_file_id
+        FROM likes l
+        JOIN users u ON u.id = l.from_user_id
+        WHERE l.to_user_id = $1
+          AND l.type_attraction IN ('like', 'live_like')
+          AND u.id NOT IN (
+              SELECT to_user_id FROM likes WHERE from_user_id = $1
+          )
+        ORDER BY l.created_at ASC
+        LIMIT 1
+        """,
+        viewer_id
+    )

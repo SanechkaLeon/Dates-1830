@@ -64,6 +64,7 @@ class LikeStates(StatesGroup):
     viewing = State()
     waiting_live_like_message = State()
     waiting_no_candidates_choice = State()
+    waiting_liked_notice_choice = State()   # новое: ждём "1" или "2" на уведомление о лайке
 
 class ProfileStatesWaitingMatch(StatesGroup):
     waiting_for_choice = State()

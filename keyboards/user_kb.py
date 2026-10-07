@@ -225,3 +225,9 @@ def buttons_waiting_match():
         ],
         resize_keyboard=True
     )
+
+def buttons_liked_notice():
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="1"), KeyboardButton(text="2")]],
+        resize_keyboard=True
+    )
