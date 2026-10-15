@@ -1,6 +1,7 @@
 from aiogram import Router, F, Bot
 from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, BackgroundTypeWallpaper
 from aiogram.fsm.context import FSMContext
+from datetime import datetime
 
 from keyboards.user_kb import (
     buttons_no_candidates,
@@ -60,6 +61,10 @@ async def _send_live_like_content(sender, message_type: str, message_text: str, 
 
 
 async def _show_next_candidate(message: Message, state: FSMContext, viewer_id: int):
+    data = await state.get_data()
+    since_raw = data.get('rewatch_since')
+    since = datetime.fromisoformat(since_raw) if since_raw else None
+
     conn = await get_connection()
     candidate = await get_next_candidate(conn, viewer_id)
 
@@ -119,6 +124,8 @@ async def start_browsing(message: Message, state: FSMContext):
         await message.answer("Анкета не найдена, заполни её через /start")
         return
 
+    await state.update_data(rewatch_since=None)
+
     if await _check_pending_like(message, state, viewer['id']):
         return True
 
@@ -149,7 +156,7 @@ async def show_pending_like(message: Message, state: FSMContext):
 
     await message.answer("Ну чё как оно?", reply_markup=buttons_reaction())
 
-    await state.update_data(current_pending_liker_id=liker_id)
+    await state.update_data(current_candidate=liker_id)
     await state.set_state(LikeStates.viewing)
 
 @router.message(LikeStates.waiting_liked_notice_choice, F.text == "2")
@@ -335,6 +342,11 @@ async def handle_live_like_wrong_type(message: Message):
 async def restart_browsing(message: Message, state: FSMContext):
     data = await state.get_data()
     viewer_id = data["viewer_id"]
+
+    conn = await get_connection()
+    now = await conn.fetchval("SELECT NOW()::timestamp")
+
+    await state.update_data(rewatch_since=now.isoformat())
     await _show_next_candidate(message, state, viewer_id)
 
 @router.message(LikeStates.waiting_no_candidates_choice, F.text == "Попозже")

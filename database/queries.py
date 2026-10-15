@@ -228,7 +228,7 @@ async def update_user_basic_info(conn, tg_id:int, name:str, age:int, gender:str,
 
 
 
-async def get_next_candidate(conn, viewer_id: int):
+async def get_next_candidate(conn, viewer_id: int, rewatch_since=None):
     viewer = await conn.fetchrow(
         "SELECT gender, who_show FROM users WHERE id = $1",
         viewer_id
@@ -249,12 +249,17 @@ async def get_next_candidate(conn, viewer_id: int):
                 OR ($2 = 'Парней' AND gender = 'Я парень')
             )
             AND NOT EXISTS (
-                SELECT 1 FROM likes 
-                WHERE from_user_id = $1 AND to_user_id = users.id
+                SELECT 1 FROM likes l
+                WHERE l.from_user_id = $1 AND l.to_user_id = users.id
+                AND(
+                    CAST($3 AS timestamp) IS NULL
+                    OR l.type_attraction IN ('like', 'live_like')
+                    OR l.created_at >= CAST($3 AS timestamp) 
+                )   
             )
         ORDER BY RANDOM() LIMIT 1
         """,
-        viewer_id, viewer['who_show']
+        viewer_id, viewer['who_show'], rewatch_since
     )
     return candidate
 
@@ -301,7 +306,7 @@ async def check_mutual_like(conn, user_a: int, user_b: int ) -> bool:
 async def create_match(conn, user_a: int, user_b: int):
     u1, u2 = sorted((user_a, user_b))
     exists = await conn.fetchrow(
-        "SELECT 1 FROM messages WHERE from_user_id = $1 AND to_user_id = $2",
+        "SELECT 1 FROM messages WHERE user1_id = $1 AND user2_id = $2",
         u1, u2
     )
     if not exists:
