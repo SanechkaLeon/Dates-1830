@@ -225,3 +225,107 @@ async def update_user_basic_info(conn, tg_id:int, name:str, age:int, gender:str,
         """,
         name, age, gender, who_show, tg_id
     )
+
+
+
+async def get_next_candidate(conn, viewer_id: int):
+    viewer = await conn.fetchrow(
+        "SELECT gender, who_show FROM users WHERE id = $1",
+        viewer_id
+    )
+    if not viewer:
+        return None
+
+    candidate = await conn.fetchrow(
+        """
+        SELECT id, tg_id, name, age, gender, who_show, grade, faculty, department, bio
+        FROM users 
+        WHERE id != $1
+            AND is_verifier = True
+            AND role = 'user'
+            AND (
+                $2 = 'Всё равно'
+                OR ($2 = 'Девушек' AND gender = 'Я девушка')
+                OR ($2 = 'Парней' AND gender = 'Я парень')
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM likes 
+                WHERE from_user_id = $1 AND to_user_id = users.id
+            )
+        ORDER BY RANDOM() LIMIT 1
+        """,
+        viewer_id, viewer['who_show']
+    )
+    return candidate
+
+
+async def get_user_by_id(conn, user_id: int):
+    return await conn.fetchrow(
+        """
+        SELECT id, tg_id, name, age, gender, who_show, grade, faculty, department, bio, is_verifier 
+        FROM users 
+        WHERE id = $1
+        """,
+        user_id
+    )
+
+async def save_reaction(conn,
+                        from_user_id: int, to_user_id: int,
+                        type_reaction: str,message_type: str = 'none',
+                        message_text: str = 'none', message_file_id: str = None):
+    await conn.execute(
+        """
+        INSERT INTO likes(from_user_id, to_user_id, 
+                             type_attraction, message_type, 
+                             message_text, message_file_id, 
+                             created_at) 
+        
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        """,
+        from_user_id, to_user_id, type_reaction, message_type, message_text, message_file_id
+    )
+
+async def check_mutual_like(conn, user_a: int, user_b: int ) -> bool:
+    row = await conn.fetchrow(
+        """
+        SELECT 1 FROM likes 
+        WHERE from_user_id = $1 AND to_user_id = $2
+            AND type_attraction IN ('like', 'live_like')
+        LIMIT 1
+        """,
+    user_b, user_a
+    )
+    return row is not None
+
+
+async def create_match(conn, user_a: int, user_b: int):
+    u1, u2 = sorted((user_a, user_b))
+    exists = await conn.fetchrow(
+        "SELECT 1 FROM messages WHERE from_user_id = $1 AND to_user_id = $2",
+        u1, u2
+    )
+    if not exists:
+        await conn.execute(
+            "INSERT INTO matches(user1_id, user2_id, created_at) VALUES ($1, $2, NOW())",
+            u1, u2
+        )
+
+
+async def get_pending_liker(conn, viewer_id: int):
+    return await conn.fetchrow(
+        """
+        SELECT u.id, u.tg_id, u.name, u.age, u.gender, u.who_show,
+               u.grade, u.faculty, u.department, u.bio,
+               l.type_attraction, l.message_type, l.message_text, l.message_file_id
+        FROM likes l
+        JOIN users u ON u.id = l.from_user_id
+        WHERE l.to_user_id = $1
+          AND l.type_attraction IN ('like', 'live_like')
+          AND u.id NOT IN (
+              SELECT to_user_id FROM likes WHERE from_user_id = $1
+          )
+        ORDER BY l.created_at ASC
+        LIMIT 1
+        """,
+        viewer_id
+    )

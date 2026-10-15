@@ -8,7 +8,7 @@ from handlers.users.profile.create import router as create_profile_router    #с
 
 from handlers.commands.my_profile import router as my_profile_router
 from handlers.users.profile.edit import router as edit_profile_router
-
+from handlers.users.likes import router as likes_profile_router
 from handlers.commands.fight_club_mode import router as fight_club_mode_router    #бойцовский клуб
 from handlers.commands.safety import router as safety_router    #Безопасность
 from handlers.commands.support import router as support_router    #Поддержка
@@ -22,8 +22,11 @@ async def main():
 
     dp.include_router(create_profile_router)    #создание профиля
 
-    dp.include_router(edit_profile_router)
     dp.include_router(my_profile_router)
+    dp.include_router(edit_profile_router)
+    dp.include_router(likes_profile_router)
+
+
 
     dp.include_router(fight_club_mode_router)    #бойцовский клуб
     dp.include_router(safety_router)    #безопасность
