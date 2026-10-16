@@ -1,5 +1,5 @@
 from aiogram import Router, F, Bot
-from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, BackgroundTypeWallpaper
+from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, BackgroundTypeWallpaper, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from datetime import datetime
 
@@ -66,7 +66,7 @@ async def _show_next_candidate(message: Message, state: FSMContext, viewer_id: i
     since = datetime.fromisoformat(since_raw) if since_raw else None
 
     conn = await get_connection()
-    candidate = await get_next_candidate(conn, viewer_id)
+    candidate = await get_next_candidate(conn, viewer_id, since)
 
     if candidate is None:
         await conn.close()
@@ -213,7 +213,7 @@ async def handle_like(message: Message, state: FSMContext, bot: Bot):
 
         try:
             await bot.send_message(candidate["tg_id"], "💘 Это взаимно! У тебя мэтч!")
-            candidate_album = _build_album(candidate_media, caption=_profile_caption(viewer))
+            candidate_album = _build_album(viewer_media, caption=_profile_caption(viewer))
 
             if candidate_album:
                 await bot.send_media_group(candidate["tg_id"], media=candidate_album)
@@ -345,8 +345,10 @@ async def restart_browsing(message: Message, state: FSMContext):
 
     conn = await get_connection()
     now = await conn.fetchval("SELECT NOW()::timestamp")
+    await conn.close()
 
     await state.update_data(rewatch_since=now.isoformat())
+    await message.answer("Без б родной", reply_markup=buttons_reaction())
     await _show_next_candidate(message, state, viewer_id)
 
 @router.message(LikeStates.waiting_no_candidates_choice, F.text == "Попозже")
@@ -370,6 +372,9 @@ async def waiting_match_browse_again(message: Message, state: FSMContext):
     if viewer_id is None:
         viewer = await get_user_profile(message.from_user.id)
         viewer_id = viewer['id']
+    await _show_next_candidate(message, state, viewer_id)
+
+    await message.answer("Таки погнали смотреть анкеты", reply_markup=buttons_reaction())
     await _show_next_candidate(message, state, viewer_id)
 
 

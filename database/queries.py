@@ -306,7 +306,7 @@ async def check_mutual_like(conn, user_a: int, user_b: int ) -> bool:
 async def create_match(conn, user_a: int, user_b: int):
     u1, u2 = sorted((user_a, user_b))
     exists = await conn.fetchrow(
-        "SELECT 1 FROM messages WHERE user1_id = $1 AND user2_id = $2",
+        "SELECT 1 FROM matches WHERE user1_id = $1 AND user2_id = $2",
         u1, u2
     )
     if not exists:
