@@ -3,6 +3,9 @@ from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, BackgroundT
 from aiogram.fsm.context import FSMContext
 from datetime import datetime
 
+import html
+from aiogram.types import LinkPreviewOptions
+
 from keyboards.user_kb import (
     buttons_no_candidates,
     buttons_reaction,
@@ -53,6 +56,16 @@ def _profile_caption(user) -> str:
         f" {user['grade']}{user['faculty']}{user['department']} - "
         f"{user['bio']}"
     )
+
+async def _contact_link(bot: Bot, user) -> str:
+    name = html.escape(user['name'])
+    try:
+        chat = await bot.get_chat(user['tg_id'])
+        if chat.username:
+            return f'<a href="https://t.me/{chat.username}">{name}</a>'
+    except Exception:
+        pass
+    return f'<a href="tg://user?id={user["tg_id"]}">{name}</a>'
 
 async def _send_live_like_content(sender, message_type: str, message_text: str, message_file_id: str):
     """sender — либо message (для answer_*), либо (bot, chat_id) пара — см. вызовы ниже."""
@@ -203,30 +216,26 @@ async def handle_like(message: Message, state: FSMContext, bot: Bot):
         candidate_media = await get_user_media(candidate_id)
         await conn.close()
 
-        await message.answer("О май гад, это взаимно!")
-        album = _build_album(candidate_media, caption=_profile_caption(candidate))
+        no_preview =LinkPreviewOptions(is_disabled=True)
+        candidate_link = await _contact_link(bot, candidate)
+        viewer_link = await _contact_link(viewer, candidate)
 
-        if album:
-            await message.answer_media_group(media=album)
-        else:
-            await message.answer(_profile_caption(candidate))
-
+        await message.answer(
+            f"О май гад, это взаимно! Начинай общаться с -> {candidate_link}",
+            parse_mode="HTML",
+            link_preview_options=no_preview,
+        )
         try:
-            await bot.send_message(candidate["tg_id"], "💘 Это взаимно! У тебя мэтч!")
-            candidate_album = _build_album(viewer_media, caption=_profile_caption(viewer))
-
-            if candidate_album:
-                await bot.send_media_group(candidate["tg_id"], media=candidate_album)
-            else:
-                await bot.send_message(candidate['tg_id'], _profile_caption(viewer))
-
+            await bot.send_message(
+                candidate["tg_id"],
+                f"О май гад, это взаимно! Начинай общаться с -> {viewer_link}",
+                parse_mode="HTML",
+                link_preview_options=no_preview,
+            )
         except Exception:
             pass
-    else:
-        await conn.close()
-
-    await _show_next_candidate(message, state, viewer_id)
-
+        else:
+            await conn.close()
 
 
 @router.message(LikeStates.viewing, F.text == "💌📹🎤")
